@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Denis BTC: Rebirth Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root { --btc: #f7931a; --bg: #121212; --pink: #ff55ff; }
+        body {
+            margin: 0; background: var(--bg); color: #fff;
+            font-family: 'Press Start 2P', cursive; overflow: hidden;
+            display: flex; flex-direction: column; height: 100vh;
+            user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+        .tabs { display: flex; background: #000; border-bottom: 2px solid #333; }
+        .tab-btn { flex: 1; padding: 15px; border: none; background: none; color: #666; font-family: inherit; font-size: 8px; cursor: pointer; }
+        .tab-btn.active { color: var(--btc); border-bottom: 3px solid var(--btc); }
+        .content { flex-grow: 1; display: none; flex-direction: column; align-items: center; position: relative; }
+        .content.active { display: flex; }
+        #balance { font-size: 20px; color: var(--btc); margin-top: 20px; }
+        #hero-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #hero { width: 200px; height: 200px; cursor: pointer; transition: transform 0.05s; image-rendering: pixelated; }
+        #hero:active { transform: scale(0.92); }
+        #nick-display { font-size: 9px; color: #888; margin-top: 10px; cursor: pointer; border-bottom: 1px dashed #555; }
+        #rebirth-btn {
+            background: var(--pink); border: none; padding: 12px; font-family: inherit; 
+            font-size: 9px; cursor: pointer; color: #000; margin-bottom: 15px; width: 85%;
+            display: none;
+        }
+        #rebirth-btn:disabled { background: #552255; color: #888; cursor: not-allowed; }
+        .shop { display: grid; grid-template-columns: 1fr 1fr; width: 100%; background: #1e1e1e; border-top: 2px solid #333; }
+        .item { padding: 15px; border: 1px solid #333; text-align: center; font-size: 8px; }
+        .buy-btn { background: var(--btc); border: none; padding: 10px; width: 100%; font-family: inherit; font-size: 8px; color: #000; cursor: pointer; margin-top: 5px; }
+        .buy-btn:disabled { background: #444; color: #777; cursor: not-allowed; }
+        .particle { position: absolute; color: var(--btc); font-size: 20px; pointer-events: none; text-shadow: 2px 2px #000; z-index: 100; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="changeTab('game', event)">ИГРА</button>
+        <button class="tab-btn" onclick="changeTab('top', event)">СТАТЫ</button>
+    </div>
+
+    <div id="game" class="content active">
+        <div id="balance">₿ 0</div>
+        <div id="hero-container">
+            <svg id="hero" viewBox="0 0 32 32" onclick="onHeroClick(event)">
+                <g id="skin-layer"></g>
+            </svg>
+            <div id="nick-display" onclick="rename()">ИГРОК</div>
+        </div>
+        <button id="rebirth-btn" onclick="rebirth()">REBIRTH (2000 ₿)</button>
+        <div class="shop">
+            <div class="item">КОКОС (x2)<br><button id="b1" class="buy-btn" onclick="buy(1)">100 ₿</button></div>
+            <div class="item">СОФРОНИЙ (x3)<br><button id="b2" class="buy-btn" onclick="buy(2)">400 ₿</button></div>
+        </div>
+    </div>
+
+    <div id="top" class="content">
+        <h3 style="color:var(--btc); margin-top: 30px; font-size: 10px;">STATS</h3>
+        <div id="stats-info" style="font-size: 8px; line-height: 2; text-align: center; margin-top: 20px;"></div>
+        </div>
+
+    <script>
+        const SAVE_KEY = 'btc_rebirth_final_v1';
+        const rebCosts = [2000, 5000, 10000]; 
+        
+        let pData = {
+            nick: "ИГРОК",
+            btc: 0,
+            max: 0,
+            pwr: 1,
+            rebirths: 0,
+            coco: false,
+            sofron: false
+        };
+
+        function load() {
+            const saved = localStorage.getItem(SAVE_KEY);
+            if (saved) pData = JSON.parse(saved);
+            render();
+        }
+
+        function save() {
+            localStorage.setItem(SAVE_KEY, JSON.stringify(pData));
+        }
+
+        function onHeroClick(e) {
+            let currentClick = pData.pwr * Math.pow(2, pData.rebirths);
+            pData.btc += currentClick;
+            if (pData.btc > pData.max) pData.max = pData.btc;
+            
+            let x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+            let y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+            
+            spawnParticle(x, y, currentClick);
+            render();
+            save();
+        }
+
+        function spawnParticle(x, y, v) {
+            const d = document.createElement('div');
+            d.className = 'particle'; d.innerText = '+' + Math.floor(v);
+            d.style.left = x + 'px'; d.style.top = y + 'px';
+            document.body.appendChild(d);
+            let ty = y, op = 1;
+            const anim = setInterval(() => {
+                ty -= 3; op -= 0.05;
+                d.style.top = ty + 'px'; d.style.opacity = op;
+                if(op <= 0) { clearInterval(anim); d.remove(); }
+            }, 30);
+        }
+
+        function buy(id) {
+            if (id === 1 && pData.btc >= 100 && !pData.coco) {
+                pData.btc -= 100; pData.pwr *= 2; pData.coco = true;
+            } else if (id === 2 && pData.btc >= 400 && !pData.sofron) {
+                pData.btc -= 400; pData.pwr *= 3; pData.sofron = true;
+            }
+            render();
+            save();
+        }
+
+        function rebirth() {
+            if (pData.rebirths >= rebCosts.length) return;
+            let cost = rebCosts[pData.rebirths];
+            if (pData.btc >= cost) {
+                pData.btc = 0;
+                pData.pwr = 1;
+                pData.coco = false;
+                pData.sofron = false;
+                pData.rebirths += 1;
+                alert("ПЕРЕРОЖДЕНИЕ №" + pData.rebirths + "!");
+                render();
+                save();
+            }
+        }
+
+        function render() {
+            document.getElementById('balance').innerText = '₿ ' + Math.floor(pData.btc);
+            document.getElementById('nick-display').innerText = pData.nick + (pData.sofron ? " (СОФРОНИЙ)" : "");
+            
+            const s = document.getElementById('skin-layer');
+            if (pData.sofron) {
+                s.innerHTML = `<rect x="8" y="10" width="16" height="18" fill="#8D6E63"/><rect x="8" y="7" width="16" height="4" fill="#1A110A"/><rect x="9" y="15" width="6" height="4" stroke="#000" fill="none"/><rect x="17" y="15" width="6" height="4" stroke="#000" fill="none"/><rect x="11" y="16" width="1" height="1" fill="#000"/><rect x="20" y="16" width="1" height="1" fill="#000"/><rect x="13" y="24" width="6" height="1" fill="#4E342E"/>`;
+            } else {
+                s.innerHTML = `<rect x="8" y="10" width="16" height="18" fill="#FFDBAC"/><rect x="8" y="6" width="16" height="6" fill="#4B3621"/><rect x="9" y="15" width="6" height="4" stroke="#222" fill="none" stroke-width="0.8"/><rect x="17" y="15" width="6" height="4" stroke="#222" fill="none" stroke-width="0.8"/><rect x="11" y="16" width="2" height="2" fill="#fff"/><rect x="19" y="16" width="2" height="2" fill="#fff"/><rect x="12" y="17" width="1" height="1" fill="#000"/><rect x="20" y="17" width="1" height="1" fill="#000"/><circle cx="14" cy="27" r="1.2" fill="#F1C27D"/><circle cx="18" cy="27" r="1.2" fill="#F1C27D"/>`;
+            }
+
+            document.getElementById('b1').disabled = (pData.btc < 100 || pData.coco);
+            document.getElementById('b1').innerText = pData.coco ? "OK" : "100 ₿";
+            document.getElementById('b2').disabled = (pData.btc < 400 || pData.sofron);
+            document.getElementById('b2').innerText = pData.sofron ? "OK" : "400 ₿";
+
+            const rbBtn = document.getElementById('rebirth-btn');
+            if (pData.sofron) {
+                rbBtn.style.display = 'block';
+                if (pData.rebirths < rebCosts.length) {
+                    let cost = rebCosts[pData.rebirths];
+                    rbBtn.innerText = "REBIRTH (" + cost + " ₿)";
+                    rbBtn.disabled = pData.btc < cost;
+                } else {
+                    rbBtn.innerText = "MAX REBIRTH LEVEL";
+                    rbBtn.disabled = true;
+                }
+            } else {
+                rbBtn.style.display = 'none';
+            }
+
+            document.getElementById('stats-info').innerHTML = `
+                ИМЯ: ${pData.nick}<br>
+                REBIRTHS: ${pData.rebirths}<br>
+                BONUS: x${Math.pow(2, pData.rebirths)}<br>
+                CLICK: ${Math.floor(pData.pwr * Math.pow(2, pData.rebirths))} ₿
+            `;
+        }
+
+        function changeTab(id, e) {
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            e.currentTarget.classList.add('active');
+        }
+
+        function rename() {
+            const newName = prompt("Введите имя:", pData.nick);
+            if (newName && newName.trim().length > 0) {
+                pData.nick = newName.trim().toUpperCase().substring(0, 10);
+                render();
+                save();
+            }
+        }
+
+        load();
+    </script>
+</body>
+</html>
